@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MedRemind — Never Miss a Dose Again</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0D1117;
+      --bg-alt:    #111827;
+      --surface:   #161B22;
+      --surface2:  #1C2333;
+      --blue:      #3B82F6;
+      --blue-dark: #2563EB;
+      --blue-glow: rgba(59,130,246,0.15);
+      --text:      #F0F6FC;
+      --muted:     #8B949E;
+      --border:    rgba(255,255,255,0.08);
+      --radius:    16px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 48px;
+      background: rgba(13,17,23,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.1rem; }
+    .logo-icon {
+      width: 34px; height: 34px; background: var(--blue); border-radius: 9px;
+      display: flex; align-items: center; justify-content: center; font-size: 18px;
+    }
+    nav a { color: var(--muted); text-decoration: none; font-size: .9rem; font-weight: 500; transition: color .2s; }
+    nav a:hover { color: var(--text); }
+    .nav-links { display: flex; gap: 32px; }
+    .btn-nav {
+      background: var(--blue); color: #fff; padding: 9px 20px;
+      border-radius: 9px; font-size: .875rem; font-weight: 600; text-decoration: none;
+      transition: background .2s;
+    }
+    .btn-nav:hover { background: var(--blue-dark); color: #fff; }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh; display: flex; align-items: center;
+      padding: 120px 48px 80px;
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: ''; position: absolute; top: -200px; left: 50%; transform: translateX(-50%);
+      width: 800px; height: 800px;
+      background: radial-gradient(circle, rgba(59,130,246,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-inner { max-width: 1200px; margin: 0 auto; width: 100%; display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 80px; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--blue-glow); border: 1px solid rgba(59,130,246,0.3);
+      padding: 6px 14px; border-radius: 999px; font-size: .8rem; font-weight: 500;
+      color: var(--blue); margin-bottom: 24px;
+    }
+    .hero-badge span { width: 6px; height: 6px; background: var(--blue); border-radius: 50%; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+    h1 { font-size: clamp(2.2rem, 4vw, 3.4rem); font-weight: 800; line-height: 1.15; letter-spacing: -.02em; margin-bottom: 20px; }
+    h1 em { font-style: normal; color: var(--blue); }
+    .hero p { color: var(--muted); font-size: 1.1rem; max-width: 480px; margin-bottom: 36px; }
+    .hero-actions { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: var(--blue); color: #fff; padding: 14px 28px;
+      border-radius: 14px; font-size: 1rem; font-weight: 600; text-decoration: none;
+      transition: all .2s; box-shadow: 0 8px 32px rgba(59,130,246,0.35);
+    }
+    .btn-primary:hover { background: var(--blue-dark); transform: translateY(-2px); }
+    .btn-secondary {
+      display: inline-flex; align-items: center; gap: 8px;
+      color: var(--text); font-size: .95rem; font-weight: 500; text-decoration: none;
+      border: 1px solid var(--border); padding: 14px 24px; border-radius: 14px;
+      transition: all .2s;
+    }
+    .btn-secondary:hover { border-color: var(--blue); color: var(--blue); }
+    .hero-stats { display: flex; gap: 32px; margin-top: 48px; }
+    .stat-num { font-size: 1.6rem; font-weight: 800; color: var(--text); }
+    .stat-label { font-size: .8rem; color: var(--muted); margin-top: 2px; }
+
+    /* ── PHONE MOCKUP ── */
+    .phone-wrap { display: flex; justify-content: center; position: relative; }
+    .phone {
+      width: 280px; background: var(--surface); border-radius: 40px;
+      border: 1.5px solid var(--border); overflow: hidden;
+      box-shadow: 0 40px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05);
+      position: relative;
+    }
+    .phone-notch {
+      width: 100px; height: 26px; background: var(--bg);
+      border-radius: 0 0 18px 18px; margin: 0 auto 12px;
+    }
+    .phone-screen { padding: 0 16px 24px; }
+    .phone-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 0 16px; }
+    .phone-header-title { font-size: .85rem; font-weight: 700; }
+    .phone-date { font-size: .7rem; color: var(--muted); }
+    .today-badge {
+      display: flex; gap: 6px; margin-bottom: 16px; overflow-x: auto;
+    }
+    .day-pill {
+      min-width: 36px; padding: 6px 4px; border-radius: 12px; text-align: center;
+      font-size: .65rem; color: var(--muted);
+    }
+    .day-pill.active { background: var(--blue); color: #fff; }
+    .dose-card {
+      background: var(--surface2); border-radius: 14px; padding: 14px;
+      margin-bottom: 10px; display: flex; align-items: center; gap: 12px;
+    }
+    .pill-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; font-size: 18px;
+      flex-shrink: 0;
+    }
+    .dose-name { font-size: .8rem; font-weight: 600; }
+    .dose-time { font-size: .68rem; color: var(--muted); margin-top: 2px; }
+    .dose-check {
+      margin-left: auto; width: 22px; height: 22px; border-radius: 50%;
+      border: 2px solid var(--border); display: flex; align-items: center;
+      justify-content: center; font-size: 11px;
+    }
+    .dose-check.taken { background: #10B981; border-color: #10B981; color: #fff; }
+    .next-dose {
+      background: linear-gradient(135deg, var(--blue), #6366F1);
+      border-radius: 14px; padding: 14px; margin-top: 6px;
+    }
+    .next-label { font-size: .7rem; color: rgba(255,255,255,.7); margin-bottom: 4px; }
+    .next-name { font-size: .85rem; font-weight: 700; }
+    .next-time { font-size: .7rem; color: rgba(255,255,255,.8); }
+
+    /* ── FEATURES ── */
+    .features { padding: 100px 48px; max-width: 1200px; margin: 0 auto; }
+    .section-label { text-align: center; color: var(--blue); font-size: .85rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 16px; }
+    h2 { text-align: center; font-size: clamp(1.8rem,3vw,2.6rem); font-weight: 800; letter-spacing: -.02em; margin-bottom: 12px; }
+    .section-sub { text-align: center; color: var(--muted); max-width: 520px; margin: 0 auto 60px; }
+    .features-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+    .feature-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 28px 24px; transition: all .25s;
+    }
+    .feature-card:hover { border-color: rgba(59,130,246,0.4); transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
+    .feature-icon {
+      width: 48px; height: 48px; background: var(--blue-glow); border-radius: 14px;
+      display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 18px;
+    }
+    .feature-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 10px; }
+    .feature-card p { color: var(--muted); font-size: .875rem; line-height: 1.65; }
+
+    /* ── SCREENSHOTS ── */
+    .screenshots { padding: 100px 48px; background: var(--surface); }
+    .screenshots-inner { max-width: 1200px; margin: 0 auto; }
+    .screens-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 60px; }
+    .screen-card {
+      background: var(--surface2); border-radius: 24px; border: 1px solid var(--border);
+      overflow: hidden; transition: transform .25s;
+    }
+    .screen-card:hover { transform: translateY(-6px); }
+    .screen-header { padding: 20px 20px 12px; }
+    .screen-header h4 { font-size: .95rem; font-weight: 700; margin-bottom: 4px; }
+    .screen-header p { font-size: .8rem; color: var(--muted); }
+    .screen-visual { height: 220px; padding: 0 20px 20px; display: flex; flex-direction: column; gap: 8px; }
+    .screen-row {
+      background: var(--bg); border-radius: 12px; padding: 12px 14px;
+      display: flex; align-items: center; gap: 10px; flex: 1;
+    }
+    .screen-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .screen-text { font-size: .75rem; color: var(--muted); }
+    .screen-bar { height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; margin-top: 4px; }
+    .screen-bar-fill { height: 100%; border-radius: 3px; }
+
+    /* ── TRUST ── */
+    .trust { padding: 80px 48px; max-width: 1200px; margin: 0 auto; }
+    .trust-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .trust-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 32px 28px; text-align: center;
+    }
+    .trust-icon { font-size: 2.5rem; margin-bottom: 16px; }
+    .trust-num { font-size: 2.2rem; font-weight: 800; color: var(--blue); }
+    .trust-label { color: var(--muted); font-size: .9rem; margin-top: 6px; }
+    .stars { color: #FBBF24; font-size: 1.1rem; letter-spacing: 2px; margin-top: 8px; }
+
+    /* ── CTA ── */
+    .cta-section {
+      padding: 100px 48px; text-align: center;
+      background: linear-gradient(180deg, var(--bg) 0%, rgba(59,130,246,0.05) 100%);
+    }
+    .cta-section h2 { margin-bottom: 20px; }
+    .cta-section p { color: var(--muted); max-width: 480px; margin: 0 auto 40px; }
+    .cta-buttons { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; }
+    .store-btn {
+      display: inline-flex; align-items: center; gap: 12px;
+      background: var(--surface); border: 1px solid var(--border);
+      padding: 14px 24px; border-radius: 14px; text-decoration: none; color: var(--text);
+      transition: all .2s;
+    }
+    .store-btn:hover { border-color: var(--blue); background: var(--blue-glow); }
+    .store-btn-icon { font-size: 2rem; }
+    .store-btn-text { text-align: left; }
+    .store-btn-sub { font-size: .7rem; color: var(--muted); display: block; }
+    .store-btn-name { font-size: .95rem; font-weight: 700; display: block; }
+
+    /* ── FOOTER ── */
+    footer {
+      padding: 32px 48px; border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    footer p { color: var(--muted); font-size: .85rem; }
+    .footer-links { display: flex; gap: 24px; }
+    .footer-links a { color: var(--muted); text-decoration: none; font-size: .85rem; transition: color .2s; }
+    .footer-links a:hover { color: var(--text); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      nav { padding: 16px 24px; }
+      .nav-links { display: none; }
+      .hero { padding: 100px 24px 60px; }
+      .hero-inner { grid-template-columns: 1fr; gap: 48px; }
+      .phone-wrap { order: -1; }
+      .features { padding: 60px 24px; }
+      .features-grid { grid-template-columns: repeat(2, 1fr); }
+      .screenshots { padding: 60px 24px; }
+      .screens-grid { grid-template-columns: 1fr; }
+      .trust { padding: 60px 24px; }
+      .trust-grid { grid-template-columns: 1fr; }
+      .cta-section { padding: 60px 24px; }
+      footer { padding: 24px; flex-direction: column; gap: 16px; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">
+    <div class="logo-icon">💊</div>
+    MedRemind
+  </div>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#screenshots">How it works</a>
+    <a href="#trust">Reviews</a>
+  </div>
+  <a href="#download" class="btn-nav">Download Free</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-content">
+      <div class="hero-badge"><span></span> Trusted by 500,000+ patients worldwide</div>
+      <h1>Never Miss a <em>Dose</em> Again</h1>
+      <p>Smart medication reminders, a database of 10,000+ drugs, calendar sync and full therapy tracking — all in one place.</p>
+      <div class="hero-actions">
+        <a href="#download" class="btn-primary">
+          <span>🍎</span> Download on App Store
+        </a>
+        <a href="#features" class="btn-secondary">See how it works →</a>
+      </div>
+      <div class="hero-stats">
+        <div>
+          <div class="stat-num">500K+</div>
+          <div class="stat-label">Active users</div>
+        </div>
+        <div>
+          <div class="stat-num">4.8 ★</div>
+          <div class="stat-label">App Store rating</div>
+        </div>
+        <div>
+          <div class="stat-num">10K+</div>
+          <div class="stat-label">Medications in DB</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHONE MOCKUP -->
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          <div class="phone-header">
+            <div>
+              <div class="phone-header-title">Today's Schedule</div>
+              <div class="phone-date">Monday, March 16</div>
+            </div>
+            <span style="font-size:1.2rem">🔔</span>
+          </div>
+          <div class="today-badge">
+            <div class="day-pill">Su<br>15</div>
+            <div class="day-pill active">Mo<br>16</div>
+            <div class="day-pill">Tu<br>17</div>
+            <div class="day-pill">We<br>18</div>
+            <div class="day-pill">Th<br>19</div>
+          </div>
+          <div class="dose-card">
+            <div class="pill-icon" style="background:rgba(239,68,68,0.15)">💊</div>
+            <div>
+              <div class="dose-name">Metformin 500mg</div>
+              <div class="dose-time">8:00 AM · Take with food</div>
+            </div>
+            <div class="dose-check taken">✓</div>
+          </div>
+          <div class="dose-card">
+            <div class="pill-icon" style="background:rgba(234,179,8,0.15)">🟡</div>
+            <div>
+              <div class="dose-name">Vitamin D 1000 IU</div>
+              <div class="dose-time">10:00 AM · 1 capsule</div>
+            </div>
+            <div class="dose-check taken">✓</div>
+          </div>
+          <div class="next-dose">
+            <div class="next-label">⏱ Next dose in 45 min</div>
+            <div class="next-name">Lisinopril 10mg</div>
+            <div class="next-time">2:00 PM · Take with water</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="section-label">Why MedRemind</div>
+  <h2>Everything you need to<br>stay on track</h2>
+  <p class="section-sub">Built for people who manage multiple medications, chronic conditions or complex therapy regimens.</p>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">⏰</div>
+      <h3>Smart Reminders</h3>
+      <p>Flexible alerts for pills, injections, creams and lab tests. Snooze, skip or mark as taken — all from the notification.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">💊</div>
+      <h3>Drug Database</h3>
+      <p>10,000+ medications with dosage info, interactions warnings and instructions. Add custom medications manually.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📅</div>
+      <h3>Calendar Sync</h3>
+      <p>Syncs with Apple Health, Google Calendar and your doctor's schedule. Never double-book a dose or appointment.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <h3>Progress Tracking</h3>
+      <p>Weekly adherence reports, streak tracking and shareable PDF summaries to bring to your next doctor visit.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SCREENSHOTS -->
+<section class="screenshots" id="screenshots">
+  <div class="screenshots-inner">
+    <div class="section-label">How it works</div>
+    <h2>Your health, beautifully organised</h2>
+    <p class="section-sub">Three views that cover everything from daily dosing to long-term progress.</p>
+    <div class="screens-grid">
+      <div class="screen-card">
+        <div class="screen-header">
+          <h4>📋 Daily Schedule</h4>
+          <p>All your meds for the day, sorted by time and status</p>
+        </div>
+        <div class="screen-visual">
+          <div class="screen-row">
+            <div class="screen-dot" style="background:#10B981"></div>
+            <div><div class="screen-text" style="color:#F0F6FC;font-weight:600">Metformin 500mg — 8:00 AM</div><div class="screen-text">✓ Taken</div></div>
+          </div>
+          <div class="screen-row">
+            <div class="screen-dot" style="background:#3B82F6"></div>
+            <div><div class="screen-text" style="color:#F0F6FC;font-weight:600">Lisinopril 10mg — 2:00 PM</div><div class="screen-text">Upcoming</div></div>
+          </div>
+          <div class="screen-row">
+            <div class="screen-dot" style="background:#8B949E"></div>
+            <div><div class="screen-text" style="color:#F0F6FC;font-weight:600">Atorvastatin 20mg — 9:00 PM</div><div class="screen-text">Scheduled</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="screen-card">
+        <div class="screen-header">
+          <h4>🔔 Reminder Alert</h4>
+          <p>Tap to take, snooze or skip — right from the lock screen</p>
+        </div>
+        <div class="screen-visual">
+          <div class="screen-row" style="background: linear-gradient(135deg,#1d2f4f,#1C2333); flex-direction:column; align-items:flex-start; gap:8px">
+            <div style="font-size:.7rem;color:#3B82F6;font-weight:600">⏰ MedRemind · Now</div>
+            <div class="screen-text" style="color:#F0F6FC;font-weight:700;font-size:.85rem">Time for Lisinopril 10mg</div>
+            <div class="screen-text">Take 1 tablet with a full glass of water</div>
+            <div style="display:flex;gap:8px;margin-top:4px">
+              <span style="background:#3B82F6;color:#fff;font-size:.7rem;padding:5px 12px;border-radius:8px;font-weight:600">Take Now</span>
+              <span style="background:var(--border);color:var(--muted);font-size:.7rem;padding:5px 12px;border-radius:8px">Snooze</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="screen-card">
+        <div class="screen-header">
+          <h4>📈 Weekly Progress</h4>
+          <p>Your adherence score and history at a glance</p>
+        </div>
+        <div class="screen-visual" style="gap:12px">
+          <div style="text-align:center;padding:12px 0">
+            <div style="font-size:2rem;font-weight:800;color:#3B82F6">94%</div>
+            <div style="font-size:.75rem;color:var(--muted)">Weekly Adherence Score</div>
+          </div>
+          <div style="display:flex;align-items:flex-end;gap:6px;height:60px;padding:0 8px">
+            <div style="background:#3B82F6;width:100%;height:70%;border-radius:4px 4px 0 0"></div>
+            <div style="background:#3B82F6;width:100%;height:100%;border-radius:4px 4px 0 0"></div>
+            <div style="background:#10B981;width:100%;height:90%;border-radius:4px 4px 0 0"></div>
+            <div style="background:#10B981;width:100%;height:100%;border-radius:4px 4px 0 0"></div>
+            <div style="background:#3B82F6;width:100%;height:85%;border-radius:4px 4px 0 0"></div>
+            <div style="background:#FBBF24;width:100%;height:60%;border-radius:4px 4px 0 0"></div>
+            <div style="background:#3B82F6;width:100%;height:95%;border-radius:4px 4px 0 0"></div>
+          </div>
+          <div style="font-size:.7rem;color:var(--muted);display:flex;justify-content:space-between;padding:0 8px">
+            <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TRUST -->
+<section class="trust" id="trust">
+  <div class="section-label">Trusted worldwide</div>
+  <h2>Why patients choose MedRemind</h2>
+  <p class="section-sub" style="margin-bottom:48px">From daily vitamins to complex multi-drug regimens — for all ages, all conditions.</p>
+  <div class="trust-grid">
+    <div class="trust-card">
+      <div class="trust-icon">👥</div>
+      <div class="trust-num">500,000+</div>
+      <div class="trust-label">Active patients</div>
+    </div>
+    <div class="trust-card">
+      <div class="trust-icon">⭐</div>
+      <div class="trust-num">4.8</div>
+      <div class="stars">★★★★★</div>
+      <div class="trust-label">App Store rating · 12,000+ reviews</div>
+    </div>
+    <div class="trust-card">
+      <div class="trust-icon">🩺</div>
+      <div class="trust-num">Doctor</div>
+      <div class="trust-label">Recommended by healthcare professionals</div>
+      <div style="margin-top:14px;font-size:.8rem;color:var(--muted);font-style:italic">"I recommend MedRemind to all my patients on multiple medications."<br><br>— Dr. Sarah K., Cardiologist</div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section" id="download">
+  <h2>Start taking control<br>of your health today</h2>
+  <p>Free to download. No subscription required for core features. Set up in under 2 minutes.</p>
+  <div class="cta-buttons">
+    <a href="#" class="store-btn">
+      <div class="store-btn-icon">🍎</div>
+      <div class="store-btn-text">
+        <span class="store-btn-sub">Download on the</span>
+        <span class="store-btn-name">App Store</span>
+      </div>
+    </a>
+    <a href="#" class="store-btn">
+      <div class="store-btn-icon">▶</div>
+      <div class="store-btn-text">
+        <span class="store-btn-sub">Get it on</span>
+        <span class="store-btn-name">Google Play</span>
+      </div>
+    </a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="logo">
+    <div class="logo-icon">💊</div>
+    MedRemind
+  </div>
+  <p>© 2026 MedRemind. Not a substitute for medical advice.</p>
+  <div class="footer-links">
+    <a href="#">Privacy</a>
+    <a href="#">Terms</a>
+    <a href="#">Support</a>
+  </div>
+</footer>
+
+</body>
+</html>
