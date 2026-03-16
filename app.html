@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>MedRemind — Schedule</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0D1117;
+      --bg-alt:   #111827;
+      --surface:  #161B22;
+      --surface2: #1C2333;
+      --blue:     #3B82F6;
+      --blue-dk:  #2563EB;
+      --blue-glow:rgba(59,130,246,0.15);
+      --green:    #10B981;
+      --yellow:   #FBBF24;
+      --red:      #EF4444;
+      --purple:   #8B5CF6;
+      --text:     #F0F6FC;
+      --muted:    #8B949E;
+      --border:   rgba(255,255,255,0.08);
+      --nav-h:    72px;
+      --safe-top: env(safe-area-inset-top, 0px);
+    }
+
+    html, body {
+      height: 100%; background: var(--bg);
+      font-family: 'Inter', sans-serif;
+      color: var(--text); overflow: hidden;
+    }
+
+    /* ── APP SHELL ── */
+    .app {
+      display: flex; flex-direction: column;
+      height: 100vh; max-width: 430px;
+      margin: 0 auto; position: relative;
+      background: var(--bg);
+      box-shadow: 0 0 80px rgba(0,0,0,0.5);
+    }
+
+    /* ── STATUS BAR ── */
+    .status-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 20px 6px; font-size: .75rem; font-weight: 600;
+      flex-shrink: 0;
+    }
+    .status-time { font-size: .9rem; font-weight: 700; }
+    .status-icons { display: flex; gap: 6px; align-items: center; font-size: .8rem; }
+
+    /* ── HEADER ── */
+    .header {
+      padding: 8px 20px 16px; flex-shrink: 0;
+    }
+    .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .greeting { font-size: .8rem; color: var(--muted); font-weight: 500; }
+    .user-name { font-size: 1.25rem; font-weight: 800; margin-top: 2px; }
+    .avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; font-weight: 700; flex-shrink: 0;
+    }
+
+    /* ── PROGRESS BAR ── */
+    .progress-wrap { margin-bottom: 16px; }
+    .progress-label { display: flex; justify-content: space-between; font-size: .78rem; color: var(--muted); margin-bottom: 6px; }
+    .progress-label span:last-child { color: var(--green); font-weight: 600; }
+    .progress-track { height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--blue), var(--green)); transition: width .4s ease; }
+
+    /* ── WEEK STRIP ── */
+    .week-strip {
+      display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none;
+      padding-bottom: 2px;
+    }
+    .week-strip::-webkit-scrollbar { display: none; }
+    .day-btn {
+      display: flex; flex-direction: column; align-items: center;
+      min-width: 44px; padding: 8px 4px; border-radius: 14px;
+      cursor: pointer; transition: all .2s; border: none; background: transparent; color: var(--muted);
+    }
+    .day-btn .d-name { font-size: .65rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+    .day-btn .d-num { font-size: 1rem; font-weight: 700; margin-top: 4px; }
+    .day-btn .d-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--border); margin-top: 5px; }
+    .day-btn.has-meds .d-dot { background: var(--blue); }
+    .day-btn.today { background: var(--blue); color: #fff; }
+    .day-btn.today .d-dot { background: rgba(255,255,255,0.5); }
+    .day-btn.selected { background: var(--surface2); color: var(--text); }
+
+    /* ── SCROLL AREA ── */
+    .scroll-area {
+      flex: 1; overflow-y: auto; padding: 0 20px 20px;
+      scrollbar-width: none;
+    }
+    .scroll-area::-webkit-scrollbar { display: none; }
+
+    /* ── TIME BLOCK ── */
+    .time-block { margin-bottom: 24px; }
+    .time-label {
+      font-size: .72rem; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .06em;
+      margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+    }
+    .time-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    /* ── MED CARD ── */
+    .med-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 18px; padding: 16px; margin-bottom: 10px;
+      display: flex; align-items: center; gap: 14px;
+      transition: all .2s; cursor: pointer; position: relative; overflow: hidden;
+    }
+    .med-card::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+      width: 3px; border-radius: 0 3px 3px 0;
+    }
+    .med-card.status-taken { opacity: .65; }
+    .med-card.status-taken::before { background: var(--green); }
+    .med-card.status-upcoming::before { background: var(--blue); }
+    .med-card.status-overdue::before { background: var(--red); }
+    .med-card.status-scheduled::before { background: var(--border); }
+
+    .med-icon-wrap {
+      width: 46px; height: 46px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem; flex-shrink: 0;
+    }
+    .med-info { flex: 1; min-width: 0; }
+    .med-name { font-size: .95rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .med-dose { font-size: .78rem; color: var(--muted); margin-top: 3px; }
+    .med-tags { display: flex; gap: 6px; margin-top: 6px; }
+    .tag {
+      font-size: .65rem; font-weight: 600; padding: 3px 8px;
+      border-radius: 6px; text-transform: uppercase; letter-spacing: .03em;
+    }
+    .tag-food { background: rgba(251,191,36,0.15); color: var(--yellow); }
+    .tag-water { background: rgba(59,130,246,0.15); color: var(--blue); }
+    .tag-inj { background: rgba(139,92,246,0.15); color: var(--purple); }
+
+    /* ── CHECK BUTTON ── */
+    .check-btn {
+      width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--border);
+      background: transparent; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: all .25s; flex-shrink: 0; color: var(--muted); font-size: 1rem;
+    }
+    .check-btn.taken { background: var(--green); border-color: var(--green); color: #fff; }
+    .check-btn.overdue { border-color: var(--red); color: var(--red); }
+    .check-btn:hover:not(.taken) { border-color: var(--green); color: var(--green); transform: scale(1.1); }
+
+    /* ── SWIPE ACTIONS ── */
+    .med-card-wrapper { position: relative; overflow: hidden; border-radius: 18px; margin-bottom: 10px; }
+    .swipe-actions {
+      position: absolute; right: 0; top: 0; bottom: 0;
+      display: flex; align-items: center; gap: 0;
+      transform: translateX(100%); transition: transform .25s;
+    }
+    .swipe-btn {
+      height: 100%; padding: 0 18px; border: none; cursor: pointer;
+      font-size: .75rem; font-weight: 700; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 4px;
+    }
+    .swipe-btn.snooze { background: var(--yellow); color: #000; }
+    .swipe-btn.skip { background: var(--red); color: #fff; }
+    .med-card-wrapper.swiped .swipe-actions { transform: translateX(0); }
+    .med-card-wrapper.swiped .med-card { transform: translateX(-130px); border-radius: 18px 0 0 18px; }
+
+    /* ── UPCOMING BANNER ── */
+    .upcoming-banner {
+      background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(139,92,246,0.1));
+      border: 1px solid rgba(59,130,246,0.25); border-radius: 16px;
+      padding: 14px 16px; margin-bottom: 24px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .banner-icon { font-size: 1.5rem; }
+    .banner-text { flex: 1; }
+    .banner-title { font-size: .9rem; font-weight: 700; }
+    .banner-sub { font-size: .78rem; color: var(--muted); margin-top: 2px; }
+    .banner-time { font-size: .85rem; font-weight: 700; color: var(--blue); }
+
+    /* ── BOTTOM NAV ── */
+    .bottom-nav {
+      display: flex; justify-content: space-around; align-items: center;
+      padding: 12px 0 20px;
+      background: rgba(22,27,34,0.95); backdrop-filter: blur(16px);
+      border-top: 1px solid var(--border); flex-shrink: 0;
+    }
+    .nav-item {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      font-size: .65rem; font-weight: 600; color: var(--muted);
+      cursor: pointer; padding: 4px 16px; border: none; background: none;
+      transition: color .2s;
+    }
+    .nav-item.active { color: var(--blue); }
+    .nav-icon { font-size: 1.3rem; }
+    .nav-add {
+      width: 48px; height: 48px; border-radius: 16px;
+      background: var(--blue); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; color: #fff; transition: all .2s;
+      box-shadow: 0 4px 20px rgba(59,130,246,0.4);
+    }
+    .nav-add:hover { background: var(--blue-dk); transform: scale(1.05); }
+
+    /* ── ADD MED SHEET ── */
+    .sheet-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+      z-index: 50; opacity: 0; pointer-events: none; transition: opacity .3s;
+    }
+    .sheet-overlay.open { opacity: 1; pointer-events: all; }
+    .bottom-sheet {
+      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%) translateY(100%);
+      width: 100%; max-width: 430px; background: var(--surface);
+      border-radius: 24px 24px 0 0; z-index: 51; padding: 12px 20px 40px;
+      transition: transform .35s cubic-bezier(.32,1,.33,1);
+    }
+    .sheet-overlay.open .bottom-sheet { transform: translateX(-50%) translateY(0); }
+    .sheet-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
+    .sheet-title { font-size: 1.1rem; font-weight: 800; margin-bottom: 20px; }
+    .sheet-field { margin-bottom: 16px; }
+    .sheet-field label { font-size: .78rem; color: var(--muted); font-weight: 600; display: block; margin-bottom: 6px; }
+    .sheet-field input, .sheet-field select {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 12px 14px; color: var(--text);
+      font-family: inherit; font-size: .9rem; outline: none;
+      transition: border-color .2s;
+    }
+    .sheet-field input:focus, .sheet-field select:focus { border-color: var(--blue); }
+    .sheet-field select option { background: var(--surface2); }
+    .sheet-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .btn-add-confirm {
+      width: 100%; background: var(--blue); color: #fff; border: none;
+      border-radius: 14px; padding: 14px; font-size: 1rem; font-weight: 700;
+      cursor: pointer; transition: background .2s; margin-top: 4px;
+    }
+    .btn-add-confirm:hover { background: var(--blue-dk); }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: var(--green); color: #fff; padding: 12px 24px;
+      border-radius: 12px; font-size: .875rem; font-weight: 600;
+      opacity: 0; transition: all .3s; white-space: nowrap; z-index: 100;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast.warning { background: var(--yellow); color: #000; }
+
+    /* ── RESPONSIVE — full screen on mobile ── */
+    @media (max-width: 430px) {
+      .app { max-width: 100%; box-shadow: none; }
+    }
+    @media (min-width: 431px) {
+      body { background: #070A10; display: flex; align-items: center; justify-content: center; }
+      .app { height: 900px; border-radius: 44px; border: 1px solid var(--border); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- STATUS BAR -->
+  <div class="status-bar">
+    <span class="status-time" id="clock">9:41</span>
+    <div class="status-icons">
+      <span>●●●</span>
+      <span>WiFi</span>
+      <span>🔋</span>
+    </div>
+  </div>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <div class="greeting">Good morning 🌤</div>
+        <div class="user-name">Peter</div>
+      </div>
+      <div class="avatar">P</div>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <span id="progress-label">Today's progress</span>
+        <span id="progress-pct">0 of 6 taken</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-bar" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div class="week-strip" id="week-strip"></div>
+  </div>
+
+  <!-- SCROLL AREA -->
+  <div class="scroll-area">
+
+    <!-- UPCOMING BANNER -->
+    <div class="upcoming-banner" id="next-banner">
+      <div class="banner-icon">⏰</div>
+      <div class="banner-text">
+        <div class="banner-title">Next dose</div>
+        <div class="banner-sub" id="next-med-name">Lisinopril 10mg</div>
+      </div>
+      <div class="banner-time" id="next-med-time">2:00 PM</div>
+    </div>
+
+    <!-- SCHEDULE — rendered by JS -->
+    <div id="schedule"></div>
+
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav">
+    <button class="nav-item active">
+      <span class="nav-icon">📋</span>
+      Schedule
+    </button>
+    <button class="nav-item">
+      <span class="nav-icon">💊</span>
+      Meds
+    </button>
+    <button class="nav-add" onclick="openSheet()">＋</button>
+    <button class="nav-item">
+      <span class="nav-icon">📊</span>
+      Progress
+    </button>
+    <button class="nav-item">
+      <span class="nav-icon">⚙️</span>
+      Settings
+    </button>
+  </div>
+
+</div>
+
+<!-- ADD MED SHEET -->
+<div class="sheet-overlay" id="sheet-overlay" onclick="maybeCloseSheet(event)">
+  <div class="bottom-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Add Medication</div>
+    <div class="sheet-field">
+      <label>Medication name</label>
+      <input type="text" id="med-name-input" placeholder="e.g. Metformin" />
+    </div>
+    <div class="sheet-row">
+      <div class="sheet-field">
+        <label>Dose</label>
+        <input type="text" id="med-dose-input" placeholder="e.g. 500mg" />
+      </div>
+      <div class="sheet-field">
+        <label>Time</label>
+        <input type="time" id="med-time-input" value="08:00" />
+      </div>
+    </div>
+    <div class="sheet-field">
+      <label>Type</label>
+      <select id="med-type-input">
+        <option value="💊">💊 Tablet / Capsule</option>
+        <option value="💉">💉 Injection</option>
+        <option value="🧴">🧴 Cream / Gel</option>
+        <option value="🧪">🧪 Lab test / Analysis</option>
+        <option value="🩺">🩺 Therapy session</option>
+        <option value="💧">💧 Drops / Liquid</option>
+      </select>
+    </div>
+    <div class="sheet-field">
+      <label>Instructions</label>
+      <select id="med-instr-input">
+        <option value="">No special instructions</option>
+        <option value="food">Take with food</option>
+        <option value="water">Take with water (full glass)</option>
+        <option value="empty">Take on empty stomach</option>
+        <option value="before">Take 30 min before meal</option>
+      </select>
+    </div>
+    <button class="btn-add-confirm" onclick="addMed()">Add to Schedule</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── DATA ──
+const COLORS = {
+  red:    { bg:'rgba(239,68,68,0.15)',    text:'#EF4444' },
+  blue:   { bg:'rgba(59,130,246,0.15)',   text:'#3B82F6' },
+  green:  { bg:'rgba(16,185,129,0.15)',   text:'#10B981' },
+  yellow: { bg:'rgba(251,191,36,0.15)',   text:'#FBBF24' },
+  purple: { bg:'rgba(139,92,246,0.15)',   text:'#8B5CF6' },
+  pink:   { bg:'rgba(236,72,153,0.15)',   text:'#EC4899' },
+};
+const CKEYS = Object.keys(COLORS);
+
+let meds = [
+  { id:1, name:'Metformin',    dose:'500mg',   time:'08:00', icon:'💊', color:'red',    instr:'food',  status:'taken'    },
+  { id:2, name:'Vitamin D',    dose:'1000 IU', time:'08:00', icon:'🌟', color:'yellow', instr:'food',  status:'taken'    },
+  { id:3, name:'Lisinopril',   dose:'10mg',    time:'14:00', icon:'💊', color:'blue',   instr:'water', status:'upcoming' },
+  { id:4, name:'Omega-3',      dose:'1000mg',  time:'14:00', icon:'🐟', color:'green',  instr:'food',  status:'upcoming' },
+  { id:5, name:'Atorvastatin', dose:'20mg',    time:'21:00', icon:'💊', color:'purple', instr:'',      status:'scheduled'},
+  { id:6, name:'Insulin',      dose:'10 units',time:'21:00', icon:'💉', color:'red',    instr:'',      status:'scheduled', type:'inj'},
+];
+let nextId = 7;
+
+// ── CLOCK ──
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.getHours().toString().padStart(2,'0') + ':' +
+    now.getMinutes().toString().padStart(2,'0');
+}
+updateClock(); setInterval(updateClock, 10000);
+
+// ── WEEK STRIP ──
+function buildWeek() {
+  const strip = document.getElementById('week-strip');
+  const days = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+  const today = new Date();
+  for (let i = -3; i <= 3; i++) {
+    const d = new Date(today); d.setDate(today.getDate() + i);
+    const btn = document.createElement('button');
+    btn.className = 'day-btn' + (i===0?' today':' has-meds');
+    btn.innerHTML = `<span class="d-name">${days[d.getDay()]}</span><span class="d-num">${d.getDate()}</span><span class="d-dot"></span>`;
+    btn.onclick = () => {
+      document.querySelectorAll('.day-btn').forEach(b=>b.classList.remove('selected'));
+      if(i!==0) btn.classList.add('selected');
+    };
+    strip.appendChild(btn);
+  }
+}
+buildWeek();
+
+// ── RENDER SCHEDULE ──
+function fmt(t) {
+  const [h,m] = t.split(':').map(Number);
+  const ampm = h>=12?'PM':'AM';
+  return `${h%12||12}:${m.toString().padStart(2,'0')} ${ampm}`;
+}
+
+function renderSchedule() {
+  const el = document.getElementById('schedule');
+  // Group by time block
+  const blocks = {};
+  meds.forEach(med => {
+    const [h] = med.time.split(':').map(Number);
+    let label;
+    if (h < 12) label = 'Morning · ' + fmt(med.time);
+    else if (h < 17) label = 'Afternoon · ' + fmt(med.time);
+    else label = 'Evening · ' + fmt(med.time);
+    if (!blocks[label]) blocks[label] = [];
+    blocks[label].push(med);
+  });
+
+  el.innerHTML = '';
+  Object.entries(blocks).forEach(([label, group]) => {
+    const block = document.createElement('div');
+    block.className = 'time-block';
+    block.innerHTML = `<div class="time-label">${label}</div>`;
+    group.forEach(med => {
+      block.appendChild(buildCard(med));
+    });
+    el.appendChild(block);
+  });
+
+  updateProgress();
+  updateNextBanner();
+}
+
+function buildCard(med) {
+  const c = COLORS[med.color] || COLORS.blue;
+  const wrapper = document.createElement('div');
+  wrapper.className = 'med-card-wrapper';
+  wrapper.id = 'wrap-' + med.id;
+
+  const tags = [];
+  if (med.instr === 'food') tags.push('<span class="tag tag-food">With Food</span>');
+  if (med.instr === 'water') tags.push('<span class="tag tag-water">Full Glass</span>');
+  if (med.type === 'inj') tags.push('<span class="tag tag-inj">Injection</span>');
+
+  const checkIcon = med.status === 'taken' ? '✓' : '';
+  const checkClass = med.status === 'taken' ? 'taken' : med.status === 'overdue' ? 'overdue' : '';
+
+  wrapper.innerHTML = `
+    <div class="med-card status-${med.status}" id="card-${med.id}" onclick="handleCardClick(${med.id}, event)">
+      <div class="med-icon-wrap" style="background:${c.bg}">${med.icon}</div>
+      <div class="med-info">
+        <div class="med-name">${med.name} ${med.dose}</div>
+        <div class="med-dose">${['taken','upcoming','overdue','scheduled'].includes(med.status) ? statusLabel(med.status) : ''}</div>
+        ${tags.length ? `<div class="med-tags">${tags.join('')}</div>` : ''}
+      </div>
+      <button class="check-btn ${checkClass}" onclick="toggleTaken(${med.id}, event)">${checkIcon}</button>
+    </div>
+    <div class="swipe-actions" id="actions-${med.id}">
+      <button class="swipe-btn snooze" onclick="snooze(${med.id})">⏰<br>Snooze</button>
+      <button class="swipe-btn skip" onclick="skipMed(${med.id})">✕<br>Skip</button>
+    </div>
+  `;
+  return wrapper;
+}
+
+function statusLabel(s) {
+  return { taken:'✓ Taken', upcoming:'Upcoming', overdue:'⚠ Overdue', scheduled:'Scheduled' }[s] || '';
+}
+
+// ── INTERACTIONS ──
+let touchStart = null;
+function handleCardClick(id, e) {
+  // handled by children — do nothing on card itself
+}
+
+function toggleTaken(id, e) {
+  e.stopPropagation();
+  const med = meds.find(m=>m.id===id);
+  if (!med) return;
+  if (med.status === 'taken') {
+    med.status = 'upcoming';
+    showToast('Marked as not taken', 'warning');
+  } else {
+    med.status = 'taken';
+    showToast('✓ ' + med.name + ' marked as taken');
+  }
+  renderSchedule();
+}
+
+function snooze(id) {
+  const med = meds.find(m=>m.id===id);
+  if (!med) return;
+  const [h,m] = med.time.split(':').map(Number);
+  const snoozeMin = (h*60+m+15) % (24*60);
+  med.time = String(Math.floor(snoozeMin/60)).padStart(2,'0') + ':' + String(snoozeMin%60).padStart(2,'0');
+  document.getElementById('wrap-'+id).classList.remove('swiped');
+  showToast('⏰ Snoozed 15 minutes', 'warning');
+  renderSchedule();
+}
+
+function skipMed(id) {
+  meds = meds.filter(m=>m.id!==id);
+  showToast('Skipped for today');
+  renderSchedule();
+}
+
+// Swipe to reveal actions
+document.addEventListener('touchstart', e => {
+  touchStart = e.touches[0].clientX;
+});
+document.addEventListener('touchend', e => {
+  if (!touchStart) return;
+  const dx = touchStart - e.changedTouches[0].clientX;
+  const target = e.target.closest('.med-card-wrapper');
+  if (!target) { touchStart=null; return; }
+  if (dx > 50) target.classList.add('swiped');
+  if (dx < -30) target.classList.remove('swiped');
+  touchStart = null;
+});
+
+// ── PROGRESS ──
+function updateProgress() {
+  const total = meds.length;
+  const taken = meds.filter(m=>m.status==='taken').length;
+  const pct = total ? Math.round(taken/total*100) : 0;
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('progress-pct').textContent = `${taken} of ${total} taken`;
+}
+
+// ── NEXT BANNER ──
+function updateNextBanner() {
+  const upcoming = meds.filter(m=>m.status==='upcoming'||m.status==='scheduled')
+    .sort((a,b)=>a.time.localeCompare(b.time));
+  const banner = document.getElementById('next-banner');
+  if (!upcoming.length) { banner.style.display='none'; return; }
+  banner.style.display='flex';
+  document.getElementById('next-med-name').textContent = upcoming[0].name + ' ' + upcoming[0].dose;
+  document.getElementById('next-med-time').textContent = fmt(upcoming[0].time);
+}
+
+// ── ADD MED SHEET ──
+function openSheet() { document.getElementById('sheet-overlay').classList.add('open'); }
+function closeSheet() { document.getElementById('sheet-overlay').classList.remove('open'); }
+function maybeCloseSheet(e) { if (e.target.id==='sheet-overlay') closeSheet(); }
+
+function addMed() {
+  const name = document.getElementById('med-name-input').value.trim();
+  const dose = document.getElementById('med-dose-input').value.trim();
+  const time = document.getElementById('med-time-input').value;
+  const icon = document.getElementById('med-type-input').value;
+  const instr = document.getElementById('med-instr-input').value;
+  if (!name) { showToast('Enter medication name', 'warning'); return; }
+
+  const [h] = time.split(':').map(Number);
+  const now = new Date(); const nowH = now.getHours(); const nowM = now.getMinutes();
+  const medMin = h*60 + parseInt(time.split(':')[1]);
+  const nowMin = nowH*60+nowM;
+  const status = medMin < nowMin ? 'scheduled' : 'upcoming';
+
+  meds.push({
+    id: nextId++, name, dose: dose||'', time,
+    icon, color: CKEYS[Math.floor(Math.random()*CKEYS.length)],
+    instr, status
+  });
+
+  meds.sort((a,b)=>a.time.localeCompare(b.time));
+  closeSheet();
+  showToast('✓ ' + name + ' added');
+  document.getElementById('med-name-input').value='';
+  document.getElementById('med-dose-input').value='';
+  renderSchedule();
+}
+
+// ── TOAST ──
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast' + (type?' '+type:'');
+  void t.offsetWidth;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2500);
+}
+
+// ── INIT ──
+renderSchedule();
+</script>
+</body>
+</html>
